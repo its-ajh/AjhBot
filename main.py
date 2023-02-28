@@ -1,5 +1,6 @@
 import lyricsgenius
 import os
+import openai
 import discord
 import requests
 import random
@@ -10,9 +11,13 @@ from discord.ext import commands
 bot = commands.Bot(command_prefix='!')
 slash = SlashCommand(bot, sync_commands=True)
 
+OPENAI_KEY = os.environ.get('OPENAI_API_TOKEN')
+
 GENIUS_TOKEN = os.environ.get('GENIUS_ACCESS_TOKEN')
 
-genius = lyricsgenius.Genius("GENIUS_TOKEN")
+genius = lyricsgenius.Genius(GENIUS_TOKEN)
+
+openai.api_key = OPENAI_KEY
 
 # deez nuts command
 
@@ -28,22 +33,21 @@ async def coinflip(ctx: SlashContext):
     await ctx.send(f"the coin landed on **{result}**")
 
 # talking ben command
-"""
-@slash.slash(name="talkingben", description="talk to ben")
+
+@slash.slash(name="talkingben", 
+             description="talk to talking ben",
              options=[
-                 create_option(
-                     name="say",
-                     description="what you want to say to ben",
-                     option_type=4,
-                     required=True
-                 )
+               create_option(
+                 name="say",
+                 description="What you want to say to ben",
+                 option_type=3,
+                 required=True
+               )
              ])
+async def talking_ben(ctx: SlashContext, say: str):
+    responses = ["yes?", "**no.**", "**EURGH.**", "**OHOHOHO!**", "*na na na na...*"]
+    await ctx.send(f'"{say}": {random.choice(responses)}')
 
-async def coinflip(ctx: SlashContext):
-    result = random.choice(["yes", "no", "eurgh.", "ohohoho!", "na na na na...",])
-    await ctx.send(f":telephone: **ben?** {result}")
-
-"""
 # number picker command
 
 @slash.slash(name="numberpicker",
@@ -64,7 +68,7 @@ async def coinflip(ctx: SlashContext):
              ])
 async def picknumber(ctx: SlashContext, max: int, min: int = 1):
     if min > max:
-        await ctx.send("the minimum value cannot be greater than the maximum number idiot")
+        await ctx.send("the minimum value cannot be greater than the maximum number")
         return
     result = random.randint(min, max)
     await ctx.send(f"the number picked is **{result}**")
@@ -80,11 +84,11 @@ async def quote(ctx: SlashContext):
         author = data["a"].lower()
         await ctx.send(f"\"{quote}\" - {author}")
     else:
-        await ctx.send("failed to fetch a random quote")
+        await ctx.send("failed to fetch 0_0")
 
 # fact command
 
-@slash.slash(name="fact", description="Shows a random fact")
+@slash.slash(name="fact", description="sends a random fact")
 async def fact(ctx: SlashContext):
     response = requests.get("https://uselessfacts.jsph.pl/random.json?language=en")
     if response.status_code == 200:
@@ -92,42 +96,34 @@ async def fact(ctx: SlashContext):
         fact = data["text"].lower()
         await ctx.send(f"{fact}")
     else:
-        await ctx.send("Failed to fetch a random fact")
+        await ctx.send("failed to fetch 0_0")
 
-# lyrics command
+# gpt 3 command
 
-"""
-@slash.slash(name="lyrics",
-             description="sends the lyrics of a song",
+@slash.slash(name="chatgpt",
+             description="talk to chatgpt",
              options=[
-							create_option(
-							    name="song",
-							    description="name of the song",
-							    option_type=3,
-							    required=True
-							),
-							create_option(
-							    name="artist",
-							    description="name of the artist",
-							    option_type=3,
-							    required=False
-							)
+               create_option(
+                 name="prompt",
+                 description="the prompt for gpt3 to generate text from",
+                 option_type=3,
+                 required=True
+               )
              ])
-async def lyrics(ctx: SlashContext, song: str, artist: str):
-    # search for the song
-    song = genius.search_song(song, artist)
-    if song:
-        # send the lyrics in lowercase
-        await ctx.send(song.lyrics.lower())
-    else:
-        await ctx.send("couldnt find lyrics 0_0")
-"""
+async def gpt3_command(ctx: SlashContext, prompt: str):
+	
+    response = openai.Completion.create(
+        engine="text-davinci-003", prompt=prompt, max_tokens=50)["choices"][0]["text"]
+
+    response_lower = response.lower()
+
+    await ctx.send(response_lower)
 
 # dont edit below
 
 BOT_TOKEN = os.environ.get('DISCORD_BOT_TOKEN')
 
-activity = discord.Activity(type=discord.ActivityType.watching, name="my website")
+activity = discord.Activity(type=discord.ActivityType.watching, name="your commands hehe")
 
 from flask import Flask
 from threading import Thread
@@ -139,10 +135,12 @@ def main():
   return "<h1>bot is up and running</h1>" #Change this if you want
 
 def run():
-    app.run(host="0.0.0.0", port=8080) #don't touch this
+    app.run(host="0.0.0.0", port=3000) #don't touch this
 
 def keep_alive():
     server = Thread(target=run)
     server.start()
 keep_alive()
-bot.run(BOT_TOKEN)
+
+if __name__ == '__main__':
+    bot.run(os.environ.get('DISCORD_BOT_TOKEN'))

@@ -12,6 +12,7 @@ replit = "^3.2.4"
 discordpy-slash = "^11.0.0"
 slash-help = "^2.0.5"
 Flask = "^2.2.3"
+openai = "^0.26.5"
 
 [tool.poetry.dev-dependencies]
 
